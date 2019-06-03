@@ -2,6 +2,9 @@
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 project(geom_svc CXX C)
 
+execute_process(COMMAND root-config --version OUTPUT_VARIABLE ROOT_VER)
+string(SUBSTRING ${ROOT_VER} 0 1 ROOT_VER)
+
 # ROOT dict generation
 file(GLOB dicts "")
 file(GLOB pcms "")
@@ -11,8 +14,11 @@ foreach(LinkDefh ${LinkDefhs})
 	string(REPLACE "LinkDef.h" "_Dict.C" DictC ${LinkDefh})
 	string(REPLACE "${PROJECT_SOURCE_DIR}/" "" DictC ${DictC})
 	string(REPLACE ".C" "_rdict.pcm" DictPcm ${DictC})
-	list(APPEND dicts ${DictC})
+  if(ROOT_VER GREATER 5)
 	list(APPEND pcms  ${DictPcm})
+  else()
+	list(APPEND dicts ${DictC})
+  endif()
 	add_custom_command(OUTPUT ${DictC} COMMAND rootcint ARGS -f ${DictC} -c -p ${Dicth} ${LinkDefh})
 endforeach(LinkDefh)
 
@@ -46,8 +52,6 @@ file(GLOB non_dist_headers ${PROJECT_SOURCE_DIR}/*LinkDef.h)
 list(REMOVE_ITEM dist_headers ${non_dist_headers})
 install(FILES ${dist_headers} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${CMAKE_PROJECT_NAME}/)
 
-execute_process(COMMAND root-config --version OUTPUT_VARIABLE ROOT_VER)
-string(SUBSTRING ${ROOT_VER} 0 1 ROOT_VER)
 if (ROOT_VER GREATER 5)
    add_custom_target(install_pcm ALL COMMAND mkdir -p ${CMAKE_INSTALL_PREFIX}/lib COMMAND cp -up ${pcms} ${CMAKE_INSTALL_PREFIX}/lib)
    add_dependencies(install_pcm geom_svc)
